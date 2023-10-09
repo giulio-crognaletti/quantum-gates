@@ -6,7 +6,7 @@ from .integrator import Integrator
 
 class BitflipFactory(object):
 
-    def construct(self, tm, rout) -> np.array:
+    def construct(self, tm, rout, tg) -> np.array:
         """Generates the noisy gate for bitflips.
 
         This is the exact solution, a unitary matrix. It is used for bitflip error on measurements.
@@ -18,7 +18,6 @@ class BitflipFactory(object):
         Returns:
             Array representing the bitflip noise gate.
         """
-        tg = 35 * 10**(-9)
         Dtm = tm / tg
         e = np.sqrt(rout/Dtm)
         W = np.random.normal(0, np.sqrt(Dtm))
@@ -31,7 +30,7 @@ class BitflipFactory(object):
 
 class DepolarizingFactory(object):
 
-    def construct(self, Dt, p) -> np.array:
+    def construct(self, Dt, p, tg) -> np.array:
         """Generates the noisy gate for depolarization.
 
         This is the 2nd order approximated solution, a unitary matrix. It implements the single-qubit depolarizing error
@@ -44,7 +43,6 @@ class DepolarizingFactory(object):
         Returns:
             Array representing the depolarizing noise gate.
         """
-        tg = 35 * 10**(-9)
         Dt = Dt / tg
         ed = np.sqrt(p/4)
         W1 = np.random.normal(0, np.sqrt(Dt))
@@ -62,7 +60,7 @@ class DepolarizingFactory(object):
 
 class RelaxationFactory(object):
 
-    def construct(self, Dt, T1, T2) -> np.array:
+    def construct(self, Dt, T1, T2, tg) -> np.array:
         """Generates the noisy gate for combined amplitude and phase damping.
 
         This is the exact solution, a non-unitary matrix. It implements the single-qubit relaxation error on idle
@@ -77,7 +75,6 @@ class RelaxationFactory(object):
               Array representing the amplitude and phase damping noise gate.
         """
         # Constants
-        tg = 35 * 10**(-9)
         Dt = Dt / tg
 
         # Helper function
@@ -124,7 +121,7 @@ class SingleQubitGateFactory(object):
     def __init__(self, integrator: Integrator):
         self.integrator = integrator
 
-    def construct(self, theta, phi, p, T1, T2) -> np.array:
+    def construct(self, theta, phi, p, T1, T2, tg) -> np.array:
         """Samples a general single qubit gate on devices from IBM with noise.
 
         Args:
@@ -140,7 +137,7 @@ class SingleQubitGateFactory(object):
 
         """ 0) CONSTANTS """
 
-        tg = 35 * 10**(-9)
+        p = 1-(1-p)**(tg/3.5e-8)
         ed = np.sqrt(p/4)
 
         # Amplitude damping time is zero
@@ -337,7 +334,7 @@ class XFactory(object):
         self.integrator = integrator
         self.constructor = SingleQubitGateFactory(self.integrator)
 
-    def construct(self, phi, p, T1, T2) -> np.array:
+    def construct(self, phi, p, T1, T2, tg) -> np.array:
         """Generates a noisy X gate.
 
         This is a 2nd order approximated solution, a non-unitary matrix. It implements the X single-qubit noisy quantum
@@ -352,7 +349,7 @@ class XFactory(object):
         Returns:
               Array representing the X noisy quantum gate.
         """
-        return self.constructor.construct(np.pi, phi, p, T1, T2)
+        return self.constructor.construct(np.pi, phi, p, T1, T2, tg)
 
 
 class SXFactory(object):
@@ -373,7 +370,7 @@ class SXFactory(object):
         self.integrator = integrator
         self.constructor = SingleQubitGateFactory(self.integrator)
 
-    def construct(self, phi, p, T1, T2) -> np.array:
+    def construct(self, phi, p, T1, T2, tg) -> np.array:
         """Generates a noisy SX gate.
 
         This is a 2nd order approximated solution, a non-unitary matrix. It implements the SX single-qubit noisy quantum
@@ -388,7 +385,7 @@ class SXFactory(object):
         Returns:
               Array representing the SX noisy quantum gate.
         """
-        return self.constructor.construct(np.pi/2, phi, p, T1, T2)
+        return self.constructor.construct(np.pi/2, phi, p, T1, T2, tg)
 
 
 class CRFactory(object):
@@ -400,7 +397,7 @@ class CRFactory(object):
     def __init__(self, integrator):
         self.integrator = integrator
 
-    def construct(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+    def construct(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg, tg) -> np.array:
         """Generates a CR gate.
 
         This is the 2 order approximated solution, non-unitary matrix. It implements the CR two-qubit noisy quantum gate
@@ -423,7 +420,6 @@ class CRFactory(object):
 
         """ 0) CONSTANTS """
 
-        tg = 35 * 10**(-9)
         omega = theta
         a = t_cr / tg
         ed_cr = np.sqrt(p_cr/(4*a))
@@ -690,7 +686,7 @@ class CNOTFactory(object):
         self.relaxation_c = RelaxationFactory()
 
     def construct(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg,
-                  T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+                  T1_ctr, T2_ctr, T1_trg, T2_trg, tg) -> np.array:
         """Generates a noisy CNOT gate.
 
         This is a 2nd order approximated solution, a non-unitary matrix. It implements the CNOT two-qubit noisy quantum
@@ -713,17 +709,16 @@ class CNOTFactory(object):
               Array representing a CNOT two-qubit noisy quantum gate.
         """
         # Constants
-        tg = 35*10**(-9)
         t_cr = t_cnot/2-tg
         p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_cnot)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
 
         # Sample gates
-        first_cr = self.cr_c.construct(-np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        second_cr = self.cr_c.construct(np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        x_gate = self.x_c.construct(-phi_ctr+np.pi/2, p_single_ctr, T1_ctr, T2_ctr)
-        sx_gate = self.sx_c.construct(-phi_trg, p_single_trg, T1_trg, T2_trg)
-        relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg)
-        Y_Rz = self.single_qubit_gate_c.construct(-np.pi, -phi_ctr + np.pi/2 + np.pi/2, p_single_ctr, T1_ctr, T2_ctr)
+        first_cr = self.cr_c.construct(-np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg, tg)
+        second_cr = self.cr_c.construct(np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg, tg)
+        x_gate = self.x_c.construct(-phi_ctr+np.pi/2, p_single_ctr, T1_ctr, T2_ctr, tg)
+        sx_gate = self.sx_c.construct(-phi_trg, p_single_trg, T1_trg, T2_trg, tg)
+        relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg, tg)
+        Y_Rz = self.single_qubit_gate_c.construct(-np.pi, -phi_ctr + np.pi/2 + np.pi/2, p_single_ctr, T1_ctr, T2_ctr, tg)
 
         result = first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr @ np.kron(Y_Rz, sx_gate)
         return result
@@ -754,7 +749,7 @@ class CNOTInvFactory(object):
         self.sx_c = SXFactory(self.integrator)
         self.relaxation_c = RelaxationFactory()
 
-    def construct(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+    def construct(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg, tg) -> np.array:
         """Generates a reverse CNOT gate of IBM devices.
 
         This is a 2nd order approximated solution, a non-unitary matrix. It implements the reverse CNOT two-qubit noisy
@@ -777,19 +772,18 @@ class CNOTInvFactory(object):
                Array representing the reverse CNOT two-qubit noisy quantum gate.
         """
         # Constants
-        tg = 35*10**(-9)
         t_cr = (t_cnot-3*tg)/2
         p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_cnot)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)**3))))
 
         # Sample gates
-        Ry = self.single_qubit_gate_c.construct(-np.pi/2, -phi_trg-np.pi/2+np.pi/2, p_single_trg, T1_trg, T2_trg)
-        Y_Z = self.single_qubit_gate_c.construct(np.pi/2, -phi_ctr-np.pi+np.pi/2, p_single_ctr, T1_ctr, T2_ctr)
-        first_sx_gate = self.sx_c.construct(-phi_ctr - np.pi - np.pi/2, p_single_ctr, T1_ctr, T2_ctr)
-        second_sx_gate = self.sx_c.construct(-phi_trg - np.pi/2, p_single_ctr, T1_ctr, T2_ctr)
-        first_cr = self.cr_c.construct(-np.pi/4, -phi_ctr-np.pi, t_cr, p_cr, T1_trg, T2_trg, T1_ctr, T2_ctr)
-        second_cr = self.cr_c.construct(np.pi/4, -phi_ctr-np.pi, t_cr, p_cr, T1_trg, T2_trg, T1_ctr, T2_ctr)
-        x_gate = self.x_c.construct(-phi_trg-np.pi/2, p_single_trg, T1_trg, T2_trg)
-        relaxation_gate = self.relaxation_c.construct(tg, T1_ctr, T2_ctr)
+        Ry = self.single_qubit_gate_c.construct(-np.pi/2, -phi_trg-np.pi/2+np.pi/2, p_single_trg, T1_trg, T2_trg, tg)
+        Y_Z = self.single_qubit_gate_c.construct(np.pi/2, -phi_ctr-np.pi+np.pi/2, p_single_ctr, T1_ctr, T2_ctr, tg)
+        first_sx_gate = self.sx_c.construct(-phi_ctr - np.pi - np.pi/2, p_single_ctr, T1_ctr, T2_ctr, tg)
+        second_sx_gate = self.sx_c.construct(-phi_trg - np.pi/2, p_single_ctr, T1_ctr, T2_ctr, tg)
+        first_cr = self.cr_c.construct(-np.pi/4, -phi_ctr-np.pi, t_cr, p_cr, T1_trg, T2_trg, T1_ctr, T2_ctr, tg)
+        second_cr = self.cr_c.construct(np.pi/4, -phi_ctr-np.pi, t_cr, p_cr, T1_trg, T2_trg, T1_ctr, T2_ctr, tg)
+        x_gate = self.x_c.construct(-phi_trg-np.pi/2, p_single_trg, T1_trg, T2_trg, tg)
+        relaxation_gate = self.relaxation_c.construct(tg, T1_ctr, T2_ctr, tg)
 
         result = np.kron(Ry, first_sx_gate) @ first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr @ np.kron(second_sx_gate, Y_Z)
         return result

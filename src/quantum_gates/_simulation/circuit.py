@@ -365,7 +365,7 @@ class AlternativeCircuit(object):
         """
         self.phi[i] = self.phi[i] + theta
 
-    def bitflip(self, i: int, tm: float, rout: float):
+    def bitflip(self, i: int, tm: float, rout: float, tg:float):
         """
         Apply bitflip noise gate on qubit i. Add before measurements or after initial state preparation.
 
@@ -377,9 +377,9 @@ class AlternativeCircuit(object):
         Returns:
              None
         """
-        self.apply(gate=self.gates.bitflip(tm, rout), i=i)
+        self.apply(gate=self.gates.bitflip(tm, rout, tg), i=i)
 
-    def relaxation(self, i: int, Dt: float, T1: float, T2: float):
+    def relaxation(self, i: int, Dt: float, T1: float, T2: float, tg:float):
         """Apply relaxation noise gate on qubit i. Add on idle-qubits.
 
         Args:
@@ -391,9 +391,9 @@ class AlternativeCircuit(object):
         Returns:
              None
         """
-        self.apply(gate=self.gates.relaxation(Dt, T1, T2), i=i)
+        self.apply(gate=self.gates.relaxation(Dt, T1, T2, tg), i=i)
 
-    def depolarizing(self, i: int, Dt: float, p: float):
+    def depolarizing(self, i: int, Dt: float, p: float, tg:float):
         """Apply depolarizing noise gate on qubit i. Add on idle-qubits.
 
         Args:
@@ -404,9 +404,9 @@ class AlternativeCircuit(object):
         Returns:
              None
         """
-        self.apply(gate=self.gates.depolarizing(Dt, p), i=i)
+        self.apply(gate=self.gates.depolarizing(Dt, p, tg), i=i)
 
-    def X(self, i: int, p: float, T1: float, T2: float) -> np.array:
+    def X(self, i: int, p: float, T1: float, T2: float, tg:float) -> np.array:
         """
         Apply X single-qubit noisy quantum gate with depolarizing and
         relaxation errors during the unitary evolution.
@@ -420,9 +420,9 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
-        self.apply(gate=self.gates.X(-self.phi[i], p, T1, T2), i=i)
+        self.apply(gate=self.gates.X(-self.phi[i], p, T1, T2, tg), i=i)
 
-    def SX(self, i: int, p: float, T1: float, T2: float):
+    def SX(self, i: int, p: float, T1: float, T2: float, tg:float):
         """
         Apply SX single-qubit noisy quantum gate with depolarizing and
         relaxation errors during the unitary evolution.
@@ -436,10 +436,10 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
-        self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
+        self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2, tg), i=i)
 
     def CNOT(self, i: int, k: int, t_cnot: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
-             T2_ctr: float, T1_trg: float, T2_trg: float):
+             T2_ctr: float, T1_trg: float, T2_trg: float, tg:float):
         """
         Apply CNOT two-qubit noisy quantum gate with depolarizing and
         relaxation errors on both qubits during the unitary evolution.
@@ -464,13 +464,13 @@ class AlternativeCircuit(object):
         if i < k:
             # Control i
             self._mp[i] = self.gates.CNOT(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg, tg
             )
             self.phi[i] = self.phi[i] - np.pi/2
         else:
             # Control i
             self._mp[i] = self.gates.CNOT_inv(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg, tg
             )
 
             self.phi[i] = self.phi[i] + np.pi/2 + np.pi

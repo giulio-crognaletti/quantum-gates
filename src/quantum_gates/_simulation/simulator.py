@@ -63,7 +63,8 @@ class MrAndersonSimulator(object):
             psi0: np.array,
             shots: int,
             device_param: dict,
-            nqubit: int):
+            nqubit: int,
+            f: float):
         """
             Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
             and runs noisy quantum gates. Warning: Qubits layout must have a linear topology.
@@ -78,8 +79,8 @@ class MrAndersonSimulator(object):
                   vector of probabilities (array)
         """
         # Warnings
-        print("Warning: The transpilation of the circuit has to be done by the user. ")
-        print("We only support a linear connectivity at the moment.")
+        #print("Warning: The transpilation of the circuit has to be done by the user. ")
+        #print("We only support a linear connectivity at the moment.")
 
         # Validate input
         self._validate_input_of_run(t_qiskit_circ, qubits_layout, psi0, shots, device_param, nqubit)
@@ -88,7 +89,7 @@ class MrAndersonSimulator(object):
         n_rz, swap_detector, data = self._preprocess_circuit(t_qiskit_circ, qubits_layout, nqubit)
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
-        probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0)
+        probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, f)
 
         # Reorder the probabilities to take the swaps into account
         reordered_probs = self._fix_probabilities(probs, swap_detector, nqubit)
@@ -184,7 +185,8 @@ class MrAndersonSimulator(object):
                             n_rz: int,
                             nqubit: int,
                             device_param: dict,
-                            psi0: np.array) -> np.array:
+                            psi0: np.array,
+                            f:float) -> np.array:
         """ Performs the simulation shots many times and returns the resulting probability distribution.
         """
 
@@ -202,6 +204,7 @@ class MrAndersonSimulator(object):
                 "circ": self.CircuitClass(nqubit, depth, copy.deepcopy(self.gates)),
                 "device_param": copy.deepcopy(device_param),
                 "psi0": copy.deepcopy(psi0),
+                "f": f,
             } for i in range(shots)
         ]
 
@@ -270,7 +273,8 @@ class MrAndersonSimulator(object):
 def _apply_gates_on_circuit(
         data: list,
         circ: Circuit or StandardCircuit or EfficientCircuit,
-        device_param: dict):
+        device_param: dict,
+        f:float):
     """ Applies the operations specified in data on the circuit.
 
     The constants regarding the device and noise are passed in device_param.
@@ -280,6 +284,8 @@ def _apply_gates_on_circuit(
         circ (Union[Circuit, StandardCircuit, EfficientCircuit]): Performs the computations.
         device_param (dict): Lookup for the noise information.
     """
+
+    tg = f*3.5e-8
 
     # Unpack dict
     T1, T2, p, rout, p_cnot, t_cnot, tm, dt = (
@@ -306,7 +312,7 @@ def _apply_gates_on_circuit(
             q = data[j][1][0]
             for k in range(nqubit):
                 if k == q:
-                    circ.SX(k, p[k], T1[k], T2[q])
+                    circ.SX(k, p[k], T1[k], T2[q], tg)
                 else:
                     circ.I(k)
 
@@ -314,7 +320,7 @@ def _apply_gates_on_circuit(
             q = data[j][1][0]
             for k in range(nqubit):
                 if k == q:
-                    circ.X(k, p[k], T1[k], T2[q])
+                    circ.X(k, p[k], T1[k], T2[q], tg)
                 else:
                     circ.I(k)
 
@@ -323,7 +329,7 @@ def _apply_gates_on_circuit(
             q_trg = data[j][1][1]
             for k in range(nqubit):
                 if k == q_ctr:
-                    circ.CNOT(k, q_trg, t_cnot[k][q_trg], p_cnot[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
+                    circ.CNOT(k, q_trg, f*t_cnot[k][q_trg], p_cnot[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg], tg)
                 elif k == q_trg:
                     pass
                 else:
@@ -334,12 +340,12 @@ def _apply_gates_on_circuit(
             time = data[j][0].duration * dt
             for k in range(nqubit):
                 if k == q:
-                    circ.relaxation(k, time, T1[k], T2[k])
+                    circ.relaxation(k, f*time, T1[k], T2[k], tg)
                 else:
                     circ.I(k)
 
     for k in range(nqubit):
-        circ.bitflip(k, tm[k], rout[k])
+        circ.bitflip(k, tm[k], rout[k], tg)
     return
 
 
@@ -354,9 +360,10 @@ def _single_shot(args: dict) -> np.array:
     data = args["data"]
     device_param = args["device_param"]
     psi0 = args["psi0"]
+    f = args["f"]
 
     # Apply gates on the circuit.
-    _apply_gates_on_circuit(data, circ, device_param)
+    _apply_gates_on_circuit(data, circ, device_param, f)
 
     # Propagate psi with  the state vector method
     psi = circ.statevector(psi0)

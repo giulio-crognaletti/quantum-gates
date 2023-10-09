@@ -58,32 +58,32 @@ class Gates(object):
         self.cnot_c = CNOTFactory(self.integrator)
         self.cnot_inv_c = CNOTInvFactory(self.integrator)
 
-    def relaxation(self, Dt, T1, T2) -> np.array:
-        return self.relaxation_c.construct(Dt, T1, T2)
+    def relaxation(self, Dt, T1, T2, tg) -> np.array:
+        return self.relaxation_c.construct(Dt, T1, T2, tg)
 
-    def bitflip(self, Dt, p) -> np.array:
-        return self.bitflip_c.construct(Dt, p)
+    def bitflip(self, Dt, p, tg) -> np.array:
+        return self.bitflip_c.construct(Dt, p, tg)
 
-    def depolarizing(self, Dt, p) -> np.array:
-        return self.depolarizing_c.construct(Dt, p)
+    def depolarizing(self, Dt, p, tg) -> np.array:
+        return self.depolarizing_c.construct(Dt, p, tg)
 
-    def single_qubit_gate(self, theta, phi, p, T1, T2) -> np.array:
-        return self.single_qubit_gate_c.construct(theta, phi, p, T1, T2)
+    def single_qubit_gate(self, theta, phi, p, T1, T2, tg) -> np.array:
+        return self.single_qubit_gate_c.construct(theta, phi, p, T1, T2, tg)
 
-    def X(self, phi, p, T1, T2) -> np.array:
-        return self.x_c.construct(phi, p, T1, T2)
+    def X(self, phi, p, T1, T2, tg) -> np.array:
+        return self.x_c.construct(phi, p, T1, T2, tg)
 
-    def SX(self, phi, p, T1, T2) -> np.array:
-        return self.sx_c.construct(phi, p, T1, T2)
+    def SX(self, phi, p, T1, T2, tg) -> np.array:
+        return self.sx_c.construct(phi, p, T1, T2, tg)
 
-    def CR(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        return self.cr_c.construct(theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    def CR(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg, tg) -> np.array:
+        return self.cr_c.construct(theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg, tg)
 
-    def CNOT(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        return self.cnot_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    def CNOT(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg, tg) -> np.array:
+        return self.cnot_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg, tg)
 
-    def CNOT_inv(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        return self.cnot_inv_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    def CNOT_inv(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg, tg) -> np.array:
+        return self.cnot_inv_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg, tg)
 
 
 class NoiseFreeGates(object):
