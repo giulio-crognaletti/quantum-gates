@@ -4,6 +4,8 @@ from qiskit import QuantumCircuit
 from time import time
 import os
 
+from copy import deepcopy
+
 from quantum_gates import MrAndersonSimulator
 
 class EstimatorZ:
@@ -132,7 +134,7 @@ def main():
     #NOISE SCALING SETUP
     start = -2 # i.e. start at 10^-2
     end = 4 # i.e. end at 10^4
-    num_fs = 3 # number of fs to be simulated
+    num_fs = 5 # number of fs to be simulated
     
     fs = np.logspace(start, end, num_fs)
 
@@ -147,12 +149,10 @@ def main():
     with TimeAndDump(data, 0):
 
         for _ in range(n_curves):
-            expzs = []
 
-            for f in fs:
-                expzs.append([f, estimator.run(sample_circuit(), shots, f, idxs)])
-
-            data.append(expzs)
-
+            circ = sample_circuit()
+            data.append([[f, estimator.run(deepcopy(circ), shots, f, idxs)] for f in fs])
+            print(data[-1])
+            
 if __name__ == "__main__":
     main()
