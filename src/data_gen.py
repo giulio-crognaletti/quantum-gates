@@ -136,9 +136,9 @@ def main():
     estimator, sample_circuit = general_setup(qubits_layout, device_name, num_layers)
 
     #NOISE SCALING SETUP
-    start = -4 # i.e. start at 10^-2
-    end = 3 # i.e. end at 10^3
-    num_fs = 14 # number of fs to be simulated
+    start = -2 # i.e. start at 10^-2
+    end = 4 # i.e. end at 10^4
+    num_fs = 3 # number of fs to be simulated
     
     fs = np.logspace(start, end, num_fs)
 
