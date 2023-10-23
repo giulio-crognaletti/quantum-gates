@@ -4,6 +4,8 @@ from qiskit import QuantumCircuit
 from time import time
 import os
 
+from copy import deepcopy
+
 from quantum_gates import MrAndersonSimulator
 
 class EstimatorZ:
@@ -70,9 +72,13 @@ def general_setup(qubits_layout, device_name, num_layers):
 
     device_param = DeviceParameters(qubits_layout)
     device_param.load_from_backend(backend)
+    
+    dict_device_param = device_param.__dict__()
+    #dict_device_param['T1']=[0 for q in qubits_layout]
+    #dict_device_param['T2']=[0 for q in qubits_layout]
 
     #ESTIMATOR SETUP
-    estimator = EstimatorZ(simulator, qubits_layout, device_param.__dict__())
+    estimator = EstimatorZ(simulator, qubits_layout,  dict_device_param)
 
     # ANSATZ SETUP
     def sample_circuit():
@@ -122,7 +128,7 @@ def main():
     qubits_layout = [0,1,2]
     device_name = "ibm_lagos"
 
-    shots = 10
+    shots = 1000
 
     num_layers = 1
 
@@ -130,29 +136,27 @@ def main():
     estimator, sample_circuit = general_setup(qubits_layout, device_name, num_layers)
 
     #NOISE SCALING SETUP
-    start = -2 # i.e. start at 10^-2
-    end = 4 # i.e. end at 10^4
-    num_fs = 3 # number of fs to be simulated
+    start = -4 # i.e. start at 10^-2
+    end = 3 # i.e. end at 10^3
+    num_fs = 14 # number of fs to be simulated
     
     fs = np.logspace(start, end, num_fs)
 
     #DATA AMOUNT
-    n_curves = 2
-    idxs = [[i] for i in qubits_layout] + [[i,j] for i in qubits_layout for j in qubits_layout]
+    n_curves = 1
+    idxs = [[i] for i in qubits_layout] + [[i,j] for i in qubits_layout for j in qubits_layout[(i+1):]]
 
     #ACTUAL ITERATION
-    print(f"Data generation started:\nNumber of curves: {n_curves}\nPositions of Z: {idxs}")
+    print(f"Data generation started:\nNumber of curves: {n_curves}")
 
     data = []
     with TimeAndDump(data, 0):
 
         for _ in range(n_curves):
-            expzs = []
 
-            for f in fs:
-                expzs.append([f, estimator.run(sample_circuit(), shots, f, idxs)])
-
-            data.append(expzs)
-
+            circ = sample_circuit()
+            data.append([[f, estimator.run(deepcopy(circ), shots, f, idxs)] for f in fs])
+            print(data[-1])
+            
 if __name__ == "__main__":
     main()

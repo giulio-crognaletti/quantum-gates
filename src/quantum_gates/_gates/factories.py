@@ -422,6 +422,7 @@ class CRFactory(object):
 
         omega = theta
         a = t_cr / tg
+        p_cr = 1-(1-p_cr)**(t_cr/3.5e-8)
         ed_cr = np.sqrt(p_cr/(4*a))
 
         if T1_ctr == 0:
