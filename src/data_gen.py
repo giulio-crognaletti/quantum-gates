@@ -23,10 +23,10 @@ class EstimatorZ:
         psi0[0] = 1.0
         self.probs, self.vars = self.sim.run(circ, self.layout, psi0, shots, self.dev_params, self.n, f)
 
-        return {"".join(["Z" if i in idx else "I" for i in self.layout]):(self._expval_Z(idx), self._var_Z()) for idx in idxs}
+        return {"".join(["Z" if i in idx else "I" for i in self.layout]):(self._expval_Z(idx), self._var_Z(shots)) for idx in idxs}
     
-    def _var_Z(self):
-        return np.sum(self.vars)
+    def _var_Z(self, shots):
+        return np.sum(self.vars)/shots
     
     def _expval_Z(self, idx:list):
         
