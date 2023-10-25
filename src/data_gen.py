@@ -87,7 +87,7 @@ def general_setup(qubits_layout, device_name, num_layers):
         L = num_layers          #number of layers
 
         theta = 2*np.pi*np.random.rand(n,L)
-        random_basis_change = 2*np.pi*np.random.rand(n,3)
+        random_basis_change = 2*np.pi*np.random.rand(3,n)
     
         ansatz = transpile(ansatz_gen(theta, random_basis_change, n, L), 
                         backend=backend, 
@@ -125,25 +125,25 @@ class TimeAndDump():
 
 def main():
 
-    qubits_layout = [0,1,2]
+    qubits_layout = [0,1]
     device_name = "ibm_lagos"
 
     shots = 1000
 
-    num_layers = 1
+    num_layers = 2
 
     # GENERAL SETUP
     estimator, sample_circuit = general_setup(qubits_layout, device_name, num_layers)
 
     #NOISE SCALING SETUP
-    start = -2 # i.e. start at 10^-2
-    end = 4 # i.e. end at 10^4
-    num_fs = 3 # number of fs to be simulated
+    start = -3 # i.e. start at 10^-3
+    end = 2 # i.e. end at 10^2
+    num_fs = 10 # number of fs to be simulated
     
     fs = np.logspace(start, end, num_fs)
 
     #DATA AMOUNT
-    n_curves = 1
+    n_curves = 100
     idxs = [[i] for i in qubits_layout] + [[i,j] for i in qubits_layout for j in qubits_layout[(i+1):]]
 
     #ACTUAL ITERATION
