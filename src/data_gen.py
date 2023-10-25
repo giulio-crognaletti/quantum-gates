@@ -21,10 +21,12 @@ class EstimatorZ:
         
         psi0 = np.zeros(2**self.n)
         psi0[0] = 1.0
-        self.probs = self.sim.run(circ, self.layout, psi0, shots, self.dev_params, self.n, f)
-        
+        self.probs, self.vars = self.sim.run(circ, self.layout, psi0, shots, self.dev_params, self.n, f)
 
-        return {"".join(["Z" if i in idx else "I" for i in self.layout]):self._expval_Z(idx) for idx in idxs}
+        return {"".join(["Z" if i in idx else "I" for i in self.layout]):(self._expval_Z(idx), self._var_Z()) for idx in idxs}
+    
+    def _var_Z(self):
+        return np.sum(self.vars)
     
     def _expval_Z(self, idx:list):
         
@@ -98,16 +100,17 @@ def general_setup(qubits_layout, device_name, num_layers):
 
     return estimator, sample_circuit
 
-def save_data(data, it0, itf):
+def save_data(spec, data, it0, itf):
     cwd = os.getcwd()
 
     import pickle
-    with open(os.path.join(cwd, f"zne_data_{it0}-{itf}"), "wb") as dump_file:
+    with open(os.path.join(cwd, f"zne_data_{it0}-{itf}_"+"_".join(k+str(val) for k, val in spec.items())), "wb") as dump_file:
         pickle.dump(data, dump_file)
 
 class TimeAndDump():
 
-    def __init__(self, data, it0):
+    def __init__(self, spec, data, it0):
+        self.spec = spec
         self.data = data
         self.start_iteration = it0
 
@@ -120,7 +123,7 @@ class TimeAndDump():
         print(f"Elapsed time:{dt}s...", end=" ")
         
         data_volume = len(self.data)
-        save_data(self.data, self.start_iteration, self.start_iteration+data_volume)
+        save_data(self.spec, self.data, self.start_iteration, self.start_iteration+data_volume)
         print(f"Succesfully dumped {data_volume} random curves to {os.getcwd()}.")
 
 def main():
@@ -128,7 +131,7 @@ def main():
     qubits_layout = [0,1]
     device_name = "ibm_lagos"
 
-    shots = 1000
+    shots = 2
 
     num_layers = 2
 
@@ -143,14 +146,15 @@ def main():
     fs = np.logspace(start, end, num_fs)
 
     #DATA AMOUNT
-    n_curves = 100
+    n_curves = 1
     idxs = [[i] for i in qubits_layout] + [[i,j] for i in qubits_layout for j in qubits_layout[(i+1):]]
 
     #ACTUAL ITERATION
     print(f"Data generation started:\nNumber of curves: {n_curves}")
 
     data = []
-    with TimeAndDump(data, 0):
+    spec = {"q":len(qubits_layout), "l":num_layers}
+    with TimeAndDump(spec, data, 0):
 
         for _ in range(n_curves):
 

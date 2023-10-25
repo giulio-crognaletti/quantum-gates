@@ -89,18 +89,22 @@ class MrAndersonSimulator(object):
         n_rz, swap_detector, data = self._preprocess_circuit(t_qiskit_circ, qubits_layout, nqubit)
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
-        probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, f)
+        probs, var = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, f)
 
         # Reorder the probabilities to take the swaps into account
         reordered_probs = self._fix_probabilities(probs, swap_detector, nqubit)
+        reordered_vars = self._fix_probabilities(var, swap_detector, nqubit)
 
         # Normalize the result
         reordered_arr = np.array(reordered_probs)
+        reordered_vars_arr = np.array(reordered_vars)
+        
         total_prob = np.sum(reordered_arr)
         assert total_prob > 0, f"Found unphysical probability vector {reordered_arr}."
         final_arr = reordered_arr / total_prob
+        final_arr_var = reordered_vars_arr/ np.square(total_prob)
 
-        return final_arr
+        return final_arr, final_arr_var
 
     def _validate_input_of_run(self, t_qiskit_circ, qubits_layout, psi0, shots, device_param, nqubit):
         """ Performs sanity checks on the input of the run() method. Raises an Exception if any mistakes are found. """
@@ -244,9 +248,9 @@ class MrAndersonSimulator(object):
 
         # Calculate result
         r_mean = r_sum / shots
-        r_var = r_square_sum / shots - np.square(r_mean)
+        r_var = (r_square_sum / (shots-1) - np.square(r_sum)/(shots*(shots-1)))
 
-        return r_mean
+        return r_mean, r_var
 
     def _fix_probabilities(self, wrong_probs: np.array, qubits_order: list, nqubit: int):
         """ This function fix the final probabilities in the right way (in case of swaps in the circuit)
